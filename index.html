@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AliceOS booting in a raw Linux-style console.">
+  <title>AliceOS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="console" aria-labelledby="boot-title">
+    <h1 id="boot-title" class="sr-only">System: Alice 1.0.0 initialised</h1>
+    <pre id="boot-log" class="boot-log" aria-live="polite"></pre>
+    <span id="prompt" class="prompt" aria-hidden="true"></span>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
