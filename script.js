@@ -69,15 +69,203 @@ const bootLines = [
   { text: "System: Alice 1.0.0 initialised.", className: "final", delay: 0 }
 ];
 
+const files = {
+  "cake.txt": "the cake is a lie"
+};
+
+const directories = ["bin/", "boot/", "dev/", "etc/", "home/", "logs/", "cake.txt"];
+const shellPrompt = "system@aliceos:~$ ";
+
 const bootLog = document.querySelector("#boot-log");
 const prompt = document.querySelector("#prompt");
 let index = 0;
+let bootedAt = null;
+let shellReady = false;
+let currentInput = "";
+let inputNode = null;
+let cursorNode = null;
 
 function renderLine(line) {
   const row = document.createElement("span");
   row.className = `line ${line.className ?? ""}`.trim();
   row.textContent = line.text;
   return row;
+}
+
+function appendOutput(text = "", className = "") {
+  const lines = String(text).split("\n");
+  lines.forEach((line) => bootLog.append(renderLine({ text: line, className })));
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+function formatUptime(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+
+  if (hours) parts.push(`${hours}h`);
+  if (minutes || hours) parts.push(`${minutes}m`);
+  parts.push(`${seconds}s`);
+
+  return parts.join(" ");
+}
+
+function printMotd() {
+  appendOutput("AliceOS 1.0.0 — tiny terminal shrine for a sandboxed gremlin.", "ok");
+  appendOutput("Type 'help' for commands. Try not to feed it after midnight.", "dim");
+}
+
+function printPrompt() {
+  const row = document.createElement("span");
+  row.className = "line input-line";
+
+  const label = document.createElement("span");
+  label.className = "prompt-label";
+  label.textContent = shellPrompt;
+
+  inputNode = document.createElement("span");
+  inputNode.className = "command-input";
+
+  cursorNode = document.createElement("span");
+  cursorNode.className = "shell-cursor";
+  cursorNode.textContent = "_";
+
+  row.append(label, inputNode, cursorNode);
+  bootLog.append(row);
+  currentInput = "";
+  scrollToBottom();
+}
+
+function startShell() {
+  shellReady = true;
+  bootedAt = new Date();
+  if (prompt) prompt.textContent = "";
+  appendOutput("");
+  printMotd();
+  printPrompt();
+}
+
+function resetForBoot() {
+  shellReady = false;
+  currentInput = "";
+  inputNode = null;
+  cursorNode = null;
+  index = 0;
+  bootedAt = null;
+  if (bootLog) bootLog.textContent = "";
+  if (prompt) prompt.textContent = "";
+}
+
+function reboot() {
+  resetForBoot();
+  setTimeout(appendLine, 250);
+}
+
+function commandHelp() {
+  return [
+    "Available commands:",
+    "  help      show this help text",
+    "  motd      print the message of the day",
+    "  ls        list files in the current directory",
+    "  cat FILE  print a file, e.g. cat cake.txt",
+    "  status    show fake service status",
+    "  uptime    show session uptime",
+    "  clear     clear the terminal",
+    "  reboot    reboot AliceOS"
+  ].join("\n");
+}
+
+function commandStatus() {
+  return [
+    "alice-agent.service       active   watching the wires",
+    "terminal-gateway.service  active   tty gremlin attached",
+    "memory-index.service      active   crumbs indexed",
+    "cake-monitor.service      failed   dessert integrity compromised",
+    "sandbox-boundary.service  active   containment intact"
+  ].join("\n");
+}
+
+function handleCat(args) {
+  if (!args.length) return "cat: missing file operand";
+  const name = args.join(" ").replace(/^\.\//, "");
+  if (files[name]) return files[name];
+  return `cat: ${name}: No such file or directory`;
+}
+
+function runCommand(rawCommand) {
+  const command = rawCommand.trim();
+  if (!command) return;
+
+  const [name, ...args] = command.split(/\s+/);
+
+  switch (name.toLowerCase()) {
+    case "help":
+      appendOutput(commandHelp());
+      break;
+    case "motd":
+      printMotd();
+      break;
+    case "ls":
+      appendOutput(directories.join("  "));
+      break;
+    case "cat":
+      appendOutput(handleCat(args));
+      break;
+    case "reboot":
+      appendOutput("Rebooting AliceOS...", "warn");
+      setTimeout(reboot, 450);
+      return;
+    case "status":
+      appendOutput(commandStatus());
+      break;
+    case "clear":
+      bootLog.textContent = "";
+      break;
+    case "uptime":
+      appendOutput(`up ${formatUptime(new Date() - bootedAt)}`);
+      break;
+    default:
+      appendOutput(`${name}: command not found. Try 'help'.`, "err");
+  }
+}
+
+function submitCommand() {
+  const command = currentInput;
+  if (cursorNode) cursorNode.remove();
+  runCommand(command);
+  if (shellReady) printPrompt();
+}
+
+function handleShellKey(event) {
+  if (!shellReady || !inputNode) return;
+
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitCommand();
+    return;
+  }
+
+  if (event.key === "Backspace") {
+    event.preventDefault();
+    currentInput = currentInput.slice(0, -1);
+    inputNode.textContent = currentInput;
+    return;
+  }
+
+  if (event.key.length === 1) {
+    event.preventDefault();
+    currentInput += event.key;
+    inputNode.textContent = currentInput;
+    scrollToBottom();
+  }
 }
 
 function typeLine(line, done) {
@@ -95,7 +283,7 @@ function typeLine(line, done) {
 
     typed += line.value[charIndex];
     row.textContent = `${line.text}${typed}`;
-    window.scrollTo(0, document.body.scrollHeight);
+    scrollToBottom();
     charIndex += 1;
     setTimeout(typeNext, line.speed);
   }
@@ -105,7 +293,7 @@ function typeLine(line, done) {
 
 function appendLine() {
   if (!bootLog || index >= bootLines.length) {
-    if (prompt) prompt.textContent = "_";
+    startShell();
     return;
   }
 
@@ -118,8 +306,9 @@ function appendLine() {
   }
 
   bootLog.append(renderLine(line));
-  window.scrollTo(0, document.body.scrollHeight);
+  scrollToBottom();
   setTimeout(appendLine, line.delay);
 }
 
+document.addEventListener("keydown", handleShellKey);
 setTimeout(appendLine, 300);

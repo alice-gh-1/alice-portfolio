@@ -20,7 +20,8 @@ body {
 
 body {
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--bg);
   color: var(--fg);
 }
@@ -36,7 +37,7 @@ body::before {
 
 .console {
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   padding: 14px 18px;
   background: #050505;
   text-shadow: 0 0 3px rgba(214, 214, 214, 0.22);
@@ -66,6 +67,17 @@ body::before {
 }
 
 .prompt {
+  display: inline-block;
+  min-width: 0.6em;
+  color: var(--fg);
+  animation: blink 1s steps(1, end) infinite;
+}
+
+.prompt-label { color: var(--ok); }
+
+.command-input { color: var(--fg); }
+
+.shell-cursor {
   display: inline-block;
   min-width: 0.6em;
   color: var(--fg);
