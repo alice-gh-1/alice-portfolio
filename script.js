@@ -70,6 +70,11 @@ const bootLines = [
 ];
 
 const shellPrompt = "system@aliceos:~$ ";
+const files = {
+  "about.txt": "AliceOS: a tiny terminal-style page.",
+  "notes.txt": "Mobile typing works by tapping anywhere after boot."
+};
+const directories = ["about.txt", "notes.txt"];
 
 const bootLog = document.querySelector("#boot-log");
 const prompt = document.querySelector("#prompt");
@@ -153,6 +158,8 @@ function commandHelp() {
     "Available commands:",
     "  help      show this help text",
     "  motd      print the message of the day",
+    "  ls        list local files",
+    "  cat FILE  print a local file",
     "  status    show page status",
     "  clear     clear the terminal",
     "  reboot    reboot AliceOS"
@@ -167,6 +174,13 @@ function commandStatus() {
   ].join("\n");
 }
 
+function handleCat(args) {
+  if (!args.length) return "cat: missing file operand";
+  const name = args.join(" ").replace(/^\.\//, "");
+  if (files[name]) return files[name];
+  return `cat: ${name}: No such file or directory`;
+}
+
 function runCommand(rawCommand) {
   const command = rawCommand.trim();
   if (!command) return;
@@ -179,6 +193,12 @@ function runCommand(rawCommand) {
       break;
     case "motd":
       printMotd();
+      break;
+    case "ls":
+      appendOutput(directories.join("  "));
+      break;
+    case "cat":
+      appendOutput(handleCat(args));
       break;
     case "reboot":
       appendOutput("Rebooting AliceOS...", "warn");
