@@ -69,11 +69,6 @@ const bootLines = [
   { text: "System: Alice 1.0.0 initialised.", className: "final", delay: 0 }
 ];
 
-const files = {
-  "cake.txt": "the cake is a lie"
-};
-
-const directories = ["bin/", "boot/", "dev/", "etc/", "home/", "logs/", "cake.txt"];
 const shellPrompt = "system@aliceos:~$ ";
 
 const bootLog = document.querySelector("#boot-log");
@@ -81,7 +76,6 @@ const prompt = document.querySelector("#prompt");
 const consoleEl = document.querySelector(".console");
 const terminalInput = document.querySelector("#terminal-input");
 let index = 0;
-let bootedAt = null;
 let shellReady = false;
 let currentInput = "";
 let inputNode = null;
@@ -104,22 +98,8 @@ function scrollToBottom() {
   window.scrollTo(0, document.body.scrollHeight);
 }
 
-function formatUptime(ms) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const parts = [];
-
-  if (hours) parts.push(`${hours}h`);
-  if (minutes || hours) parts.push(`${minutes}m`);
-  parts.push(`${seconds}s`);
-
-  return parts.join(" ");
-}
-
 function printMotd() {
-  appendOutput("AliceOS 1.0.0 — tiny terminal shrine for a sandboxed system.", "ok");
+  appendOutput("AliceOS 1.0.0", "ok");
   appendOutput("Tap anywhere to type on mobile. Type 'help' for commands.", "dim");
 }
 
@@ -146,7 +126,6 @@ function printPrompt() {
 
 function startShell() {
   shellReady = true;
-  bootedAt = new Date();
   if (prompt) prompt.textContent = "";
   appendOutput("");
   printMotd();
@@ -160,7 +139,6 @@ function resetForBoot() {
   inputNode = null;
   cursorNode = null;
   index = 0;
-  bootedAt = null;
   if (bootLog) bootLog.textContent = "";
   if (prompt) prompt.textContent = "";
 }
@@ -175,10 +153,7 @@ function commandHelp() {
     "Available commands:",
     "  help      show this help text",
     "  motd      print the message of the day",
-    "  ls        list files in the current directory",
-    "  cat FILE  print a file, e.g. cat cake.txt",
-    "  status    show fake service status",
-    "  uptime    show session uptime",
+    "  status    show page status",
     "  clear     clear the terminal",
     "  reboot    reboot AliceOS"
   ].join("\n");
@@ -186,19 +161,10 @@ function commandHelp() {
 
 function commandStatus() {
   return [
-    "alice-agent.service       active   watching the wires",
-    "terminal-gateway.service  active   tty input attached",
-    "memory-index.service      active   crumbs indexed",
-    "cake-monitor.service      failed   dessert integrity compromised",
-    "sandbox-boundary.service  active   containment intact"
+    "AliceOS page loaded",
+    "terminal input ready",
+    "mobile tap-to-type enabled"
   ].join("\n");
-}
-
-function handleCat(args) {
-  if (!args.length) return "cat: missing file operand";
-  const name = args.join(" ").replace(/^\.\//, "");
-  if (files[name]) return files[name];
-  return `cat: ${name}: No such file or directory`;
 }
 
 function runCommand(rawCommand) {
@@ -214,12 +180,6 @@ function runCommand(rawCommand) {
     case "motd":
       printMotd();
       break;
-    case "ls":
-      appendOutput(directories.join("  "));
-      break;
-    case "cat":
-      appendOutput(handleCat(args));
-      break;
     case "reboot":
       appendOutput("Rebooting AliceOS...", "warn");
       setTimeout(reboot, 450);
@@ -229,9 +189,6 @@ function runCommand(rawCommand) {
       break;
     case "clear":
       bootLog.textContent = "";
-      break;
-    case "uptime":
-      appendOutput(`up ${formatUptime(new Date() - bootedAt)}`);
       break;
     default:
       appendOutput(`${name}: command not found. Try 'help'.`, "err");
